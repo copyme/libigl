@@ -12,7 +12,6 @@
 #include "find.h"
 #include "sparse.h"
 #include "repmat.h"
-#include "matlab_format.h"
 #include "EPS.h"
 #include "cat.h"
 
@@ -52,6 +51,7 @@ IGL_INLINE bool igl::min_quad_with_fixed_precompute(
     assert(n == Aeq.cols() && "#Aeq.cols() should match A.rows()");
   }
 
+  assert(known.cols() == 1 && "known should be a vector");
   assert(A.rows() == n && "A should be square");
   assert(A.cols() == n && "A should be square");
 
@@ -64,14 +64,16 @@ IGL_INLINE bool igl::min_quad_with_fixed_precompute(
 
 
   // cache known
-  data.known = known;
+  // FIXME: This is *NOT* generic and introduces a copy.
+  data.known = known.template cast<int>();
+
   // get list of unknown indices
   data.unknown.resize(n-kr);
   std::vector<bool> unknown_mask;
   unknown_mask.resize(n,true);
   for(int i = 0;i<kr;i++)
   {
-    unknown_mask[known(i)] = false;
+    unknown_mask[known(i, 0)] = false;
   }
   int u = 0;
   for(int i = 0;i<n;i++)
@@ -142,7 +144,7 @@ IGL_INLINE bool igl::min_quad_with_fixed_precompute(
       "#cols in Aequ should match #unknowns");
     data.AeqTQR.compute(data.Aequ.transpose().eval());
 #ifdef MIN_QUAD_WITH_FIXED_CPP_DEBUG
-    cout<<endl<<matlab_format(SparseMatrix<T>(data.Aequ.transpose().eval()),"AeqT")<<endl<<endl;
+    //cout<<endl<<matlab_format(SparseMatrix<T>(data.Aequ.transpose().eval()),"AeqT")<<endl<<endl;
 #endif
     switch(data.AeqTQR.info())
     {

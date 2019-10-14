@@ -4,6 +4,7 @@
 #include <igl/read_triangle_mesh.h>
 #include <igl/find.h>
 #include <igl/readDMAT.h>
+#include <igl/readOBJ.h>
 
 #include <Eigen/Core>
 #include <catch2/catch.hpp>
@@ -86,6 +87,24 @@ namespace test_common
     igl::read_triangle_mesh(data_path(filename), V, F);
   }
 
+  template<typename DerivedV, typename DerivedF>
+  void load_obj_with_material(
+    const std::string& filename,
+    std::vector<std::vector<DerivedV >> & V,
+    std::vector<std::vector<DerivedV >> & TC,
+    std::vector<std::vector<DerivedV >> & N,
+    std::vector<std::vector<DerivedF >> & F,
+    std::vector<std::vector<DerivedF >> & FTC,
+    std::vector<std::vector<DerivedF >> & FN,
+    std::vector<std::tuple<std::string, DerivedF, DerivedF >> &FM)
+  {
+    igl::readOBJ(data_path(filename), V, TC, N, F, FTC, FN, FM);
+  }
+
+
+
+
+
   // TODO: this seems like a pointless indirection. Should just find and
   // replace test_common::load_matrix(X,...) with
   // igl::readDMAT(test_common::data_path(X),...)
@@ -96,6 +115,7 @@ namespace test_common
   {
     igl::readDMAT(data_path(filename), M);
   }
+
   template <typename DerivedA, typename DerivedB>
   void assert_eq(
     const Eigen::MatrixBase<DerivedA> & A,
@@ -116,6 +136,29 @@ namespace test_common
       }
     }
   }
+
+  template <typename DerivedA, typename DerivedB>
+  void assert_neq(
+    const Eigen::MatrixBase<DerivedA> & A,
+    const Eigen::MatrixBase<DerivedB> & B)
+  {
+    // Sizes should match
+    REQUIRE(A.rows() == B.rows());
+    REQUIRE(A.cols() == B.cols());
+    bool all_equals = true;
+    for(int i = 0;i<A.rows();i++)
+    {
+      for(int j = 0;j<A.cols();j++)
+      {
+        if (A(i,j) != B(i,j))
+        {
+          all_equals = false;
+        }
+      }
+    }
+    REQUIRE_FALSE(all_equals);
+  }
+
   template <typename DerivedA, typename DerivedB>
   void assert_eq(
     const Eigen::SparseMatrix<DerivedA> & A,

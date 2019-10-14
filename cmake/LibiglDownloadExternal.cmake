@@ -2,10 +2,19 @@
 include(DownloadProject)
 
 # With CMake 3.8 and above, we can hide warnings about git being in a
-# detached head by passing an extra GIT_CONFIG option
+# detached head by passing an extra GIT_CONFIG option.
 set(LIBIGL_EXTRA_OPTIONS TLS_VERIFY OFF)
 if(NOT (${CMAKE_VERSION} VERSION_LESS "3.8.0"))
 	list(APPEND LIBIGL_EXTRA_OPTIONS GIT_CONFIG advice.detachedHead=false)
+endif()
+
+# On CMake 3.6.3 and above, there is an option to use shallow clones of git repositories.
+# The shallow clone option only works with real tags, not SHA1, so we use a separate option.
+set(LIBIGL_BRANCH_OPTIONS)
+if(NOT (${CMAKE_VERSION} VERSION_LESS "3.6.3"))
+	# Disabled for now until we can make sure that it has no adverse effects
+	# (Downside is that the eigen mirror is huge again)
+	# list(APPEND LIBIGL_BRANCH_OPTIONS GIT_SHALLOW 1)
 endif()
 
 option(LIBIGL_SKIP_DOWNLOAD "Skip downloading external libraries" OFF)
@@ -55,24 +64,21 @@ function(igl_download_cork)
 endfunction()
 
 ## Eigen
-# 3.2.10 8ad10ac703a78143a4062c9bda9d8fd3
-# 3.3.7  f2a417d083fe8ca4b8ed2bc613d20f07
-set(LIBIGL_EIGEN_VERSION 3.2.10                           CACHE STRING "Default version of Eigen used by libigl.")
-set(LIBIGL_EIGEN_MD5     8ad10ac703a78143a4062c9bda9d8fd3 CACHE STRING "md5sum of the tar.gz archive corresponding to this version.")
+set(LIBIGL_EIGEN_VERSION 3.3.7 CACHE STRING "Default version of Eigen used by libigl.")
 function(igl_download_eigen)
 	igl_download_project(eigen
-		URL           http://bitbucket.org/eigen/eigen/get/${LIBIGL_EIGEN_VERSION}.tar.gz
-		URL_MD5       ${LIBIGL_EIGEN_MD5}
+		GIT_REPOSITORY https://github.com/eigenteam/eigen-git-mirror.git
+		GIT_TAG        ${LIBIGL_EIGEN_VERSION}
+		${LIBIGL_BRANCH_OPTIONS}
 	)
 endfunction()
 
 ## Embree
 function(igl_download_embree)
 	igl_download_project(embree
-		URL            https://github.com/embree/embree/archive/v3.2.3.tar.gz
-		URL_MD5        1868cda1c97d83d7a0b67b0b64b18cef
-		# GIT_REPOSITORY https://github.com/embree/embree.git
-		# GIT_TAG        cb61322db3bb7082caed21913ad14869b436fe78
+		GIT_REPOSITORY https://github.com/embree/embree.git
+		GIT_TAG        v3.5.2
+		${LIBIGL_BRANCH_OPTIONS}
 	)
 endfunction()
 
@@ -88,7 +94,8 @@ endfunction()
 function(igl_download_glfw)
 	igl_download_project(glfw
 		GIT_REPOSITORY https://github.com/glfw/glfw.git
-		GIT_TAG        53c8c72c676ca97c10aedfe3d0eb4271c5b23dba
+		GIT_TAG        3.3
+		${LIBIGL_BRANCH_OPTIONS}
 	)
 endfunction()
 
@@ -96,11 +103,12 @@ endfunction()
 function(igl_download_imgui)
 	igl_download_project(imgui
 		GIT_REPOSITORY https://github.com/ocornut/imgui.git
-		GIT_TAG        bc6ac8b2aee0614debd940e45bc9cd0d9b355c86
+		GIT_TAG        v1.69
+		${LIBIGL_BRANCH_OPTIONS}
 	)
 	igl_download_project(libigl-imgui
 		GIT_REPOSITORY https://github.com/libigl/libigl-imgui.git
-		GIT_TAG        a37e6e59e72fb07bd787dc7e90f72b9e1928dae7
+		GIT_TAG        07ecd3858acc71e70f0f9b2dea20a139bdddf8ae
 	)
 endfunction()
 
@@ -139,8 +147,8 @@ endfunction()
 ## Triangle
 function(igl_download_triangle)
 	igl_download_project(triangle
-		GIT_REPOSITORY https://github.com/jdumas/triangle.git
-		GIT_TAG        2cd0672ff1f67f9f6bb8e556e84901293e637b76
+		GIT_REPOSITORY https://github.com/libigl/triangle.git
+		GIT_TAG        d284c4a843efac043c310f5fa640b17cf7d96170
 	)
 endfunction()
 
@@ -152,6 +160,14 @@ function(igl_download_catch2)
 	)
 endfunction()
 
+## Predicates
+function(igl_download_predicates)
+	igl_download_project(predicates
+		GIT_REPOSITORY https://github.com/libigl/libigl-predicates.git
+		GIT_TAG        4c57c1d3f31646b010d1d58bfbe201e75c2b2ad8
+	)
+endfunction()
+
 ################################################################################
 
 ## Test data
@@ -159,7 +175,7 @@ function(igl_download_test_data)
 	igl_download_project_aux(test_data
 		"${LIBIGL_EXTERNAL}/../tests/data"
 		GIT_REPOSITORY https://github.com/libigl/libigl-tests-data
-		GIT_TAG        adc66cabf712a0bd68ac182b4e7f8b5ba009c3dd
+		GIT_TAG        0689abc55bc12825e6c01ac77446f742839ff277
 	)
 endfunction()
 

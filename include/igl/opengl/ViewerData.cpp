@@ -7,6 +7,7 @@
 // obtain one at http://mozilla.org/MPL/2.0/.
 
 #include "ViewerData.h"
+#include "ViewerCore.h"
 
 #include "../per_face_normals.h"
 #include "../material_colors.h"
@@ -25,12 +26,15 @@ IGL_INLINE igl::opengl::ViewerData::ViewerData()
   show_overlay_depth(true),
   show_vertid(false),
   show_faceid(false),
+  show_labels(false),
   show_texture(false),
   point_size(30),
   line_width(0.5f),
   line_color(0,0,0,1),
+  label_color(0,0,0.04,1),
   shininess(35.0f),
-  id(-1)
+  id(-1),
+  is_visible(1)
 {
   clear();
 };
@@ -112,6 +116,23 @@ IGL_INLINE void igl::opengl::ViewerData::set_normals(const Eigen::MatrixXd& N)
   dirty |= MeshGL::DIRTY_NORMAL;
 }
 
+IGL_INLINE void igl::opengl::ViewerData::set_visible(bool value, unsigned int core_id /*= 1*/)
+{
+  if (value)
+    is_visible |= core_id;
+  else
+  is_visible &= ~core_id;
+}
+
+IGL_INLINE void igl::opengl::ViewerData::copy_options(const ViewerCore &from, const ViewerCore &to)
+{
+  to.set(show_overlay      , from.is_set(show_overlay)      );
+  to.set(show_overlay_depth, from.is_set(show_overlay_depth));
+  to.set(show_texture      , from.is_set(show_texture)      );
+  to.set(show_faces        , from.is_set(show_faces)        );
+  to.set(show_lines        , from.is_set(show_lines)        );
+}
+
 IGL_INLINE void igl::opengl::ViewerData::set_colors(const Eigen::MatrixXd &C)
 {
   using namespace std;
@@ -188,7 +209,7 @@ IGL_INLINE void igl::opengl::ViewerData::set_colors(const Eigen::MatrixXd &C)
   }
   else
     cerr << "ERROR (set_colors): Please provide a single color, or a color per face or per vertex."<<endl;
-  dirty |= MeshGL::DIRTY_DIFFUSE;
+  dirty |= MeshGL::DIRTY_DIFFUSE | MeshGL::DIRTY_SPECULAR | MeshGL::DIRTY_AMBIENT;
 
 }
 
@@ -212,7 +233,6 @@ IGL_INLINE void igl::opengl::ViewerData::set_uv(const Eigen::MatrixXd& UV_V, con
   F_uv = UV_F;
   dirty |= MeshGL::DIRTY_UV;
 }
-
 
 IGL_INLINE void igl::opengl::ViewerData::set_texture(
   const Eigen::Matrix<unsigned char,Eigen::Dynamic,Eigen::Dynamic>& R,
@@ -269,6 +289,11 @@ IGL_INLINE void igl::opengl::ViewerData::add_points(const Eigen::MatrixXd& P,  c
   dirty |= MeshGL::DIRTY_OVERLAY_POINTS;
 }
 
+IGL_INLINE void igl::opengl::ViewerData::clear_points()
+{
+  points.resize(0, 6);
+}
+
 IGL_INLINE void igl::opengl::ViewerData::set_edges(
   const Eigen::MatrixXd& P,
   const Eigen::MatrixXi& E,
@@ -318,6 +343,11 @@ IGL_INLINE void igl::opengl::ViewerData::add_edges(const Eigen::MatrixXd& P1, co
   dirty |= MeshGL::DIRTY_OVERLAY_LINES;
 }
 
+IGL_INLINE void igl::opengl::ViewerData::clear_edges()
+{
+  lines.resize(0, 9);
+}
+
 IGL_INLINE void igl::opengl::ViewerData::add_label(const Eigen::VectorXd& P,  const std::string& str)
 {
   Eigen::RowVectorXd P_temp;
@@ -335,6 +365,20 @@ IGL_INLINE void igl::opengl::ViewerData::add_label(const Eigen::VectorXd& P,  co
   labels_positions.conservativeResize(lastid+1, 3);
   labels_positions.row(lastid) = P_temp;
   labels_strings.push_back(str);
+}
+
+IGL_INLINE void igl::opengl::ViewerData::set_labels(const Eigen::MatrixXd& P, const std::vector<std::string>& str)
+{
+  assert(P.rows() == str.size() && "position # and label # do not match!");
+  assert(P.cols() == 3 && "dimension of label positions incorrect!");
+  labels_positions = P;
+  labels_strings = str;
+}
+
+IGL_INLINE void igl::opengl::ViewerData::clear_labels()
+{
+  labels_positions.resize(0,3);
+  labels_strings.clear();
 }
 
 IGL_INLINE void igl::opengl::ViewerData::clear()
